@@ -18,11 +18,12 @@ Mevcut durumda öğrenci verileri genellikle Excel dosyalarında tutulmakta, bu 
 
 ### **Backend (Sunucu Katmanı)**
 * **Dil & Framework:** Java & Spring Boot 
-* **Mekanizma:** Text-to-SQL dönüşüm motoru 
-* **Veri Formatı:** JSON (Frontend ile iletişim için) 
+* **Yapay Zeka (AI):** Llama 3 (Ollama) — Yerel Dil Modeli (LLM)
+* **AI Entegrasyonu** Spring AI — Backend ile Llama 3 arasındaki iletişimi sağlayan köprü.
+*  **Mekanizma:** Doğal dilden PostgreSQL uyumlu sorgu üreten Text-to-SQL motoru.
 
 ### **Veritabanı (Database)**
 * **Sistem:** PostgreSQL (İlişkisel Veritabanı) 
-* **Tablo Yapıları:** `students`, `grades` ve diğer ilişkili tablolar 
+* **Tablo Yapıları:** `students`, `grades` ve `classes` tabloları arasında kurulan ilişkisel (Foreign Key) mimari.
 
 ---
