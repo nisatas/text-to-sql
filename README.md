@@ -1,15 +1,15 @@
-# 🎓 Doğal Dil (NLP) ile Öğrenci Veri Sorgulama Sistemi (Text-to-SQL)
+#  Doğal Dil (NLP) ile Öğrenci Veri Sorgulama Sistemi (Text-to-SQL)
 
 Bu proje, öğretmenlerin ve okul yöneticilerinin teknik bilgiye (SQL) ihtiyaç duymadan, sadece doğal dil kullanarak öğrenci veritabanı üzerinde sorgulama yapabilmelerini sağlayan bir **Text-to-SQL** sistemidir.
 
-## 📋 Proje Özeti
+##  Proje Özeti
 Mevcut durumda öğrenci verileri genellikle Excel dosyalarında tutulmakta, bu verilere ulaşmak ve analiz yapmak zaman alıcı ve karmaşık olmaktadır. Bu sistem, kullanıcının yazdığı doğal dil ifadelerini otomatik olarak SQL sorgusuna çevirerek veritabanından sonuçları getirir ve kullanıcıya sunar.
 
 **Örnek Kullanım:** *"Matematik notu 50'nin altında olan öğrenciler"* 
 
 ---
 
-## 🛠 Teknik Mimari (Tech Stack)
+##  Teknik Mimari (Tech Stack)
 
 ### **Frontend (Ön Yüz)**
 * **Framework:** Angular 
