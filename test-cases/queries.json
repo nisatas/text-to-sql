@@ -1,0 +1,6 @@
+[
+  {
+    "input": "Matematik notu 50 altı",
+    "expected": "SELECT * FROM grades WHERE subject='Matematik' AND score < 50"
+  }
+]

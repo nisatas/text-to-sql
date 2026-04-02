@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Okul Sorgu — Text-to-SQL</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="page">
+        <header class="header">
+            <h1>Okul verisi sorgulama</h1>
+            <p class="subtitle">Doğal dil ile soru sorun; cevap sohbet gibi düz metin gelir. İsterseniz tablo, PDF veya Excel indirebilirsiniz.</p>
+            <p class="browser-test-hint">
+                <strong>Tarayıcıdan test:</strong> Önce backend’i çalıştırın (<code>backend</code> klasöründe
+                <code>mvnw.cmd spring-boot:run</code>). Bu sayfayı <code>file://</code> yerine küçük bir sunucudan açın;
+                örnek: proje kökünde <code>npx --yes serve frontend -l 3000</code> → adres
+                <code>http://localhost:3000</code>. API adresi: <code>http://localhost:8080</code>.
+            </p>
+        </header>
+
+        <section class="card" aria-labelledby="h-examples">
+            <h2 id="h-examples">Hazır sorgular</h2>
+            <p class="hint">Bir kutuya tıklayın; soru alanı dolar, ardından <strong>Sorgula</strong> deyin.</p>
+            <div class="chips" id="example-chips"></div>
+        </section>
+
+        <section class="card" aria-labelledby="h-builder">
+            <h2 id="h-builder">Filtre ile soru oluştur</h2>
+            <div class="form-grid">
+                <label class="field">
+                    <span>Sınıf</span>
+                    <select id="filter-class"></select>
+                </label>
+                <label class="field">
+                    <span>Ders</span>
+                    <select id="filter-subject"></select>
+                </label>
+                <label class="field field-wide">
+                    <span>Sorgu tipi</span>
+                    <select id="filter-operation"></select>
+                </label>
+            </div>
+            <div class="actions">
+                <button type="button" class="btn primary" id="btn-build">Sorguyu oluştur ve gönder</button>
+                <p class="preview" id="built-question-preview" hidden></p>
+            </div>
+        </section>
+
+        <section class="card" aria-labelledby="h-free">
+            <h2 id="h-free">Serbest soru</h2>
+            <p class="hint">İsterseniz kendi cümlenizi yazın.</p>
+            <p class="helper-examples">Örnek: <em>12-A sınıfındaki öğrenciler</em> · <em>Matematik notu 50 altı öğrenciler</em> · <em>sınıfların en başarılı öğrencileri</em></p>
+            <div class="row">
+                <input type="text" id="question" placeholder="Sorunuzu yazın…" autocomplete="off" />
+                <button type="button" class="btn primary" id="btn-send">Sorgula</button>
+            </div>
+        </section>
+
+        <section class="card results chat-card" aria-labelledby="h-results">
+            <div class="results-header">
+                <h2 id="h-results">Sohbet</h2>
+                <label class="dev-toggle">
+                    <input type="checkbox" id="dev-mode" />
+                    Geliştirici detayları
+                </label>
+            </div>
+
+            <div id="loading" class="loading" hidden>Çalışıyor…</div>
+
+            <div id="chat-thread" class="chat-thread" aria-live="polite"></div>
+
+            <div id="export-bar" class="export-bar" hidden>
+                <span class="export-label">Son cevabı indir:</span>
+                <button type="button" class="btn ghost" id="btn-export-pdf">PDF</button>
+                <button type="button" class="btn ghost" id="btn-export-xlsx">Excel</button>
+            </div>
+
+            <div id="result-success" class="result-block" hidden>
+                <h3 class="result-title">Tablo görünümü</h3>
+                <p class="meta" id="row-count"></p>
+                <div class="table-wrap">
+                    <table id="result-table">
+                        <thead id="result-thead"></thead>
+                        <tbody id="result-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="result-error" class="result-block error-block" hidden>
+                <h3 class="result-title error-title">Sorgu çalıştırılırken hata oluştu</h3>
+                <p id="error-user-message" class="error-text"></p>
+            </div>
+
+            <div id="result-dev" class="dev-panel" hidden>
+                <h4>Teknik detaylar</h4>
+                <pre id="dev-sql" class="dev-pre"></pre>
+                <pre id="dev-debug" class="dev-pre"></pre>
+            </div>
+        </section>
+
+        <footer class="footer">
+            <button type="button" class="btn ghost" id="btn-test">API test</button>
+            <span id="test-status" class="test-status"></span>
+        </footer>
+    </div>
+
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
