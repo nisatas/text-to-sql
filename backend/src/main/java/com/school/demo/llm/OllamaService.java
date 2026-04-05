@@ -12,9 +12,6 @@ public class OllamaService {
 
     private final RestClient restClient;
 
-    @Value("${ollama.base-url}")
-    private String ollamaBaseUrl;
-
     @Value("${ollama.model}")
     private String ollamaModel;
 

@@ -4,40 +4,28 @@ import com.school.demo.dto.QueryResponse;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.util.*;
+import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalArgumentException.class)
     public QueryResponse handleBadRequest(IllegalArgumentException ex) {
-        QueryResponse response = new QueryResponse();
-        response.setStatus("error");
-        response.setError(ex.getMessage());
-        response.setDebug(Map.of(
-                "exceptionType", ex.getClass().getSimpleName()
-        ));
-        return response;
+        QueryResponse r = new QueryResponse();
+        r.setStatus("error");
+        r.setError(ex.getMessage());
+        return r;
     }
 
     @ExceptionHandler(Exception.class)
-    public QueryResponse handleUnhandled(Exception ex) {
-        QueryResponse response = new QueryResponse();
-        response.setStatus("error");
-
-        List<String> causeChain = new ArrayList<>();
-        Throwable t = ex;
-        while (t != null) {
-            String msg = t.getMessage();
-            causeChain.add(t.getClass().getName() + (msg == null ? "" : ": " + msg));
-            t = t.getCause();
-        }
-
-        response.setError("Beklenmeyen bir hata oluştu.");
-        response.setDebug(Map.of(
-                "exceptionType", ex.getClass().getName(),
-                "causeChain", causeChain
+    public QueryResponse handleOther(Exception ex) {
+        QueryResponse r = new QueryResponse();
+        r.setStatus("error");
+        r.setError("Beklenmeyen hata.");
+        r.setDebug(Map.of(
+                "exceptionType", ex.getClass().getSimpleName(),
+                "message", ex.getMessage() != null ? ex.getMessage() : ""
         ));
-        return response;
+        return r;
     }
 }

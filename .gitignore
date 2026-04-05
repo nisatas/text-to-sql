@@ -1,9 +1,10 @@
 HELP.md
 target/
+backend/target/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
-/src/main/resources/application.properties
+backend/hata.txt
 ### STS ###
 .apt_generated
 .classpath

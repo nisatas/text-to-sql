@@ -23,7 +23,7 @@ public class PromptBuilder {
                 - Add LIMIT 100 if no explicit limit is needed.
                 - Class names like 12-A must be treated as string values, not arithmetic expressions.
                 - Always wrap class_name values in single quotes.
-                - For "9. sinif / dokuzuncu sinif / tum 9lar" use classes.grade_level = 9 (or class_name LIKE '9-%').
+                - For "9. sinif / dokuzuncu sinif / tum 9lar" use classes.grade_level = 9 (or class_name LIKE '9-%%').
 
                 Schema:
                 %s

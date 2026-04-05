@@ -6,7 +6,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.sql.ResultSetMetaData;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 @Service
@@ -15,15 +18,11 @@ public class QueryService {
     private final JdbcTemplate jdbcTemplate;
     private final LlmService llmService;
 
-    private static final Pattern PROHIBITED_SQL = Pattern.compile(
+    private static final Pattern YASAK_KELIMELER = Pattern.compile(
             "(?is)\\b(insert|update|delete|drop|alter|create|truncate|grant|revoke|copy|call|exec|execute|merge|do)\\b"
     );
 
-    private static final List<String> ALLOWED_TABLES = List.of(
-            "classes",
-            "students",
-            "grades"
-    );
+    private static final List<String> TABLOLAR = List.of("classes", "students", "grades");
 
     public QueryService(JdbcTemplate jdbcTemplate, LlmService llmService) {
         this.jdbcTemplate = jdbcTemplate;
@@ -35,91 +34,88 @@ public class QueryService {
             throw new IllegalArgumentException("Soru boş olamaz.");
         }
 
-        String sql = llmService.generateSql(question);
-        String safeSql = sanitizeSql(sql);
+        String uretilenSql = llmService.generateSql(question);
+        String guvenliSql = sqlTemizle(uretilenSql);
 
         try {
-            return jdbcTemplate.query(safeSql, rs -> {
+            return jdbcTemplate.query(guvenliSql, rs -> {
                 ResultSetMetaData meta = rs.getMetaData();
-                int colCount = meta.getColumnCount();
+                int n = meta.getColumnCount();
 
-                List<String> columns = new ArrayList<>(colCount);
-                for (int i = 1; i <= colCount; i++) {
+                List<String> columns = new ArrayList<>(n);
+                for (int i = 1; i <= n; i++) {
                     columns.add(meta.getColumnLabel(i));
                 }
 
                 List<List<Object>> rows = new ArrayList<>();
                 while (rs.next()) {
-                    List<Object> row = new ArrayList<>(colCount);
-                    for (int i = 1; i <= colCount; i++) {
-                        row.add(rs.getObject(i));
+                    List<Object> satir = new ArrayList<>(n);
+                    for (int i = 1; i <= n; i++) {
+                        satir.add(rs.getObject(i));
                     }
-                    rows.add(row);
+                    rows.add(satir);
                 }
 
-                QueryResponse response = new QueryResponse();
-                response.setQuestion(question);
-                response.setSql(safeSql);
-                response.setStatus("success");
-                response.setColumns(columns);
-                response.setRows(rows);
-                response.setDebug(Map.of(
+                QueryResponse cevap = new QueryResponse();
+                cevap.setQuestion(question);
+                cevap.setSql(guvenliSql);
+                cevap.setStatus("success");
+                cevap.setColumns(columns);
+                cevap.setRows(rows);
+                cevap.setDebug(Map.of(
                         "rowCount", rows.size(),
-                        "generatedSqlRaw", sql
+                        "generatedSqlRaw", uretilenSql
                 ));
-                return response;
+                return cevap;
             });
         } catch (Exception ex) {
-            QueryResponse response = new QueryResponse();
-            response.setQuestion(question);
-            response.setSql(safeSql);
-            response.setStatus("error");
-            response.setError("SQL çalıştırılırken hata oluştu.");
-            response.setDebug(Map.of(
+            QueryResponse cevap = new QueryResponse();
+            cevap.setQuestion(question);
+            cevap.setSql(guvenliSql);
+            cevap.setStatus("error");
+            cevap.setError("SQL çalıştırılırken hata oluştu.");
+            cevap.setDebug(Map.of(
                     "exceptionType", ex.getClass().getName(),
-                    "generatedSqlRaw", sql,
-                    "safeSql", safeSql,
-                    "message", ex.getMessage()
+                    "generatedSqlRaw", uretilenSql,
+                    "safeSql", guvenliSql,
+                    "message", ex.getMessage() != null ? ex.getMessage() : ""
             ));
-            return response;
+            return cevap;
         }
     }
 
-    private String sanitizeSql(String sql) {
+    private String sqlTemizle(String sql) {
         if (sql == null || sql.trim().isEmpty()) {
             throw new IllegalArgumentException("SQL üretilemedi.");
         }
 
-        String cleaned = sql.trim()
+        String s = sql.trim()
                 .replace("```sql", "")
                 .replace("```", "")
                 .trim();
 
-        if (cleaned.length() > 4000) {
+        if (s.length() > 4000) {
             throw new IllegalArgumentException("SQL çok uzun.");
         }
 
-        cleaned = cleaned.replace(";", "").trim();
-
-        String lower = cleaned.toLowerCase(Locale.ROOT);
+        s = s.replace(";", "").trim();
+        String lower = s.toLowerCase(Locale.ROOT);
 
         if (!lower.startsWith("select")) {
-            throw new IllegalArgumentException("Sadece SELECT sorguları desteklenir.");
+            throw new IllegalArgumentException("Sadece SELECT desteklenir.");
+        }
+        if (YASAK_KELIMELER.matcher(s).find()) {
+            throw new IllegalArgumentException("SQL güvenlik filtresine takıldı.");
         }
 
-        if (PROHIBITED_SQL.matcher(cleaned).find()) {
-            throw new IllegalArgumentException("SQL güvenlik filtresi tarafından engellendi.");
-        }
-
-        boolean usesAllowedTable = ALLOWED_TABLES.stream().anyMatch(lower::contains);
-        if (!usesAllowedTable) {
+        boolean tabloVar = TABLOLAR.stream().anyMatch(lower::contains);
+        if (!tabloVar) {
             throw new IllegalArgumentException("Sorgu izin verilen tabloları kullanmıyor.");
         }
 
-        if (!cleaned.matches("(?is).*\\blimit\\b\\s+\\d+.*")) {
-            cleaned = cleaned + " LIMIT 100";
+        if (!s.matches("(?is).*\\blimit\\b\\s+\\d+.*")) {
+            s = s + " LIMIT 100";
         }
-
-        return cleaned;
+        return s;
     }
 }

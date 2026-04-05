@@ -18,11 +18,14 @@ public class QueryController {
 
     @GetMapping("/test")
     public String test() {
-        return "API çalışıyor 🚀";
+        return "API calisiyor";
     }
 
     @PostMapping("/query")
-    public QueryResponse query(@RequestBody QueryRequest body) {
-        return queryService.query(body.getQuestion());
+    public QueryResponse query(@RequestBody(required = false) QueryRequest body) {
+        if (body == null || body.getQuestion() == null || body.getQuestion().trim().isEmpty()) {
+            throw new IllegalArgumentException("Soru boş olamaz.");
+        }
+        return queryService.query(body.getQuestion().trim());
     }
 }
