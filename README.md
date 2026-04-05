@@ -26,4 +26,3 @@ Mevcut durumda öğrenci verileri genellikle Excel dosyalarında tutulmakta, bu 
 * **Sistem:** PostgreSQL (İlişkisel Veritabanı) 
 * **Tablo Yapıları:** `students`, `grades` ve `classes` tabloları arasında kurulan ilişkisel (Foreign Key) mimari.
 
----

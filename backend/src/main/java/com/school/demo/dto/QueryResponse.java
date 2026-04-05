@@ -11,6 +11,7 @@ public class QueryResponse {
     private List<String> columns;
     private List<List<Object>> rows;
     private String error;
+    private String summary;
     private Map<String, Object> debug;
 
     public String getQuestion() {
@@ -59,6 +60,14 @@ public class QueryResponse {
 
     public void setError(String error) {
         this.error = error;
+    }
+
+    public String getSummary() {
+        return summary;
+    }
+
+    public void setSummary(String summary) {
+        this.summary = summary;
     }
 
     public Map<String, Object> getDebug() {

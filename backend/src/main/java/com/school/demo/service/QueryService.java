@@ -2,11 +2,13 @@ package com.school.demo.service;
 
 import com.school.demo.dto.QueryResponse;
 import com.school.demo.llm.LlmService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.sql.ResultSetMetaData;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -17,6 +19,7 @@ public class QueryService {
 
     private final JdbcTemplate jdbcTemplate;
     private final LlmService llmService;
+    private final boolean turkishSummaryEnabled;
 
     private static final Pattern YASAK_KELIMELER = Pattern.compile(
             "(?is)\\b(insert|update|delete|drop|alter|create|truncate|grant|revoke|copy|call|exec|execute|merge|do)\\b"
@@ -24,9 +27,13 @@ public class QueryService {
 
     private static final List<String> TABLOLAR = List.of("classes", "students", "grades");
 
-    public QueryService(JdbcTemplate jdbcTemplate, LlmService llmService) {
+    public QueryService(
+            JdbcTemplate jdbcTemplate,
+            LlmService llmService,
+            @Value("${llm.turkish-summary.enabled:true}") boolean turkishSummaryEnabled) {
         this.jdbcTemplate = jdbcTemplate;
         this.llmService = llmService;
+        this.turkishSummaryEnabled = turkishSummaryEnabled;
     }
 
     public QueryResponse query(String question) {
@@ -62,10 +69,18 @@ public class QueryService {
                 cevap.setStatus("success");
                 cevap.setColumns(columns);
                 cevap.setRows(rows);
-                cevap.setDebug(Map.of(
-                        "rowCount", rows.size(),
-                        "generatedSqlRaw", uretilenSql
-                ));
+
+                Map<String, Object> dbg = new HashMap<>();
+                dbg.put("rowCount", rows.size());
+                dbg.put("generatedSqlRaw", uretilenSql);
+                if (turkishSummaryEnabled) {
+                    try {
+                        cevap.setSummary(llmService.summarizeTableAnswer(question, columns, rows));
+                    } catch (Exception ex) {
+                        dbg.put("summaryError", ex.getMessage() != null ? ex.getMessage() : ex.getClass().getSimpleName());
+                    }
+                }
+                cevap.setDebug(dbg);
                 return cevap;
             });
         } catch (Exception ex) {
