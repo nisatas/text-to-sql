@@ -26,6 +26,7 @@ public class QueryController {
         if (body == null || body.getQuestion() == null || body.getQuestion().trim().isEmpty()) {
             throw new IllegalArgumentException("Soru boş olamaz.");
         }
-        return queryService.query(body.getQuestion().trim());
+        boolean includeSummary = body.getIncludeSummary() != null && body.getIncludeSummary();
+        return queryService.query(body.getQuestion().trim(), includeSummary);
     }
 }

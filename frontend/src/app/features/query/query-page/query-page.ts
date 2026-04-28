@@ -18,7 +18,8 @@ export class QueryPage {
   loading = false;
   tableData: Record<string, any>[] = [];
   displayedColumns: string[] = [];
-  errorMessage = ' ';
+  errorMessage = '';
+  includeSummary = false;
 
   constructor(private queryService: Query) {}
 
@@ -31,31 +32,30 @@ export class QueryPage {
     this.loading = true;
     this.errorMessage = '';
     this.response = null;
-    this.tableData =[];
-    this.displayedColumns= [];
+    this.tableData = [];
+    this.displayedColumns = [];
 
-    this.queryService.sendQuery(this.question).subscribe({
+    this.queryService.sendQuery(this.question, this.includeSummary).subscribe({
       next: (res) => {
         console.log('Backend cevabı:', res);
 
-  this.response = res;
-  this.loading = false;
+        this.response = res;
+        this.loading = false;
 
-  if (res.status === 'success') {
-    this.displayedColumns = res.columns ?? [];
-    this.tableData = this.mapRowsToObjects(res.columns, res.rows);
-  }
+        if (res.status === 'success') {
+          this.displayedColumns = res.columns ?? [];
+          this.tableData = this.mapRowsToObjects(res.columns, res.rows);
+        }
 
-  if (res.status === 'error') {
-    this.errorMessage = res.error ?? 'Bir hata oluştu.';
-    
-  }
+        if (res.status === 'error') {
+          this.errorMessage = res.error ?? 'Bir hata oluştu.';
+        }
       },
       error: () => {
         this.errorMessage = 'Sunucuya ulaşılamadı.';
         this.loading = false;
         this.tableData = [];
-      this.displayedColumns = [];
+        this.displayedColumns = [];
       },
     });
   }

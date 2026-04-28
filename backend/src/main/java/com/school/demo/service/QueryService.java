@@ -2,9 +2,12 @@ package com.school.demo.service;
 
 import com.school.demo.dto.QueryResponse;
 import com.school.demo.llm.LlmService;
+import com.school.demo.llm.SqlCache;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.ResultSetMetaData;
 import java.util.ArrayList;
@@ -17,8 +20,11 @@ import java.util.regex.Pattern;
 @Service
 public class QueryService {
 
+    private static final Logger log = LoggerFactory.getLogger(QueryService.class);
+
     private final JdbcTemplate jdbcTemplate;
     private final LlmService llmService;
+    private final SqlCache sqlCache;
     private final boolean turkishSummaryEnabled;
 
     private static final Pattern YASAK_KELIMELER = Pattern.compile(
@@ -30,21 +36,38 @@ public class QueryService {
     public QueryService(
             JdbcTemplate jdbcTemplate,
             LlmService llmService,
+            SqlCache sqlCache,
             @Value("${llm.turkish-summary.enabled:true}") boolean turkishSummaryEnabled) {
         this.jdbcTemplate = jdbcTemplate;
         this.llmService = llmService;
+        this.sqlCache = sqlCache;
         this.turkishSummaryEnabled = turkishSummaryEnabled;
     }
 
-    public QueryResponse query(String question) {
+    public QueryResponse query(String question, boolean includeSummary) {
         if (question == null || question.trim().isEmpty()) {
             throw new IllegalArgumentException("Soru boş olamaz.");
         }
 
-        String uretilenSql = llmService.generateSql(question);
+        long t0 = System.nanoTime();
+        String qKey = question.trim().toLowerCase(java.util.Locale.ROOT);
+        String uretilenSql = sqlCache.get(qKey).orElse(null);
+        boolean cacheHit = uretilenSql != null;
+
+        long tAfterLlmSql;
+        if (!cacheHit) {
+            uretilenSql = llmService.generateSql(question);
+            sqlCache.put(qKey, uretilenSql);
+            tAfterLlmSql = System.nanoTime();
+        } else {
+            tAfterLlmSql = System.nanoTime();
+        }
+        final String uretilenSqlFinal = uretilenSql;
+        final boolean cacheHitFinal = cacheHit;
         String guvenliSql = sqlTemizle(uretilenSql);
 
         try {
+            long tBeforeDb = System.nanoTime();
             return jdbcTemplate.query(guvenliSql, rs -> {
                 ResultSetMetaData meta = rs.getMetaData();
                 int n = meta.getColumnCount();
@@ -72,15 +95,31 @@ public class QueryService {
 
                 Map<String, Object> dbg = new HashMap<>();
                 dbg.put("rowCount", rows.size());
-                dbg.put("generatedSqlRaw", uretilenSql);
-                if (turkishSummaryEnabled) {
+                dbg.put("generatedSqlRaw", uretilenSqlFinal);
+                dbg.put("cache", Map.of(
+                        "sqlCacheHit", cacheHitFinal,
+                        "sqlCacheSize", sqlCache.size()
+                ));
+                dbg.put("timingMs", Map.of(
+                        "llmSql", (tAfterLlmSql - t0) / 1_000_000,
+                        "db", (System.nanoTime() - tBeforeDb) / 1_000_000
+                ));
+                if (includeSummary && turkishSummaryEnabled) {
+                    long tBeforeSummary = System.nanoTime();
                     try {
                         cevap.setSummary(llmService.summarizeTableAnswer(question, columns, rows));
                     } catch (Exception ex) {
                         dbg.put("summaryError", ex.getMessage() != null ? ex.getMessage() : ex.getClass().getSimpleName());
+                    } finally {
+                        dbg.put("summaryMs", (System.nanoTime() - tBeforeSummary) / 1_000_000);
                     }
                 }
                 cevap.setDebug(dbg);
+                log.info("query timings: llmSql={}ms db={}ms includeSummary={} rowCount={}",
+                        (tAfterLlmSql - t0) / 1_000_000,
+                        (System.nanoTime() - tBeforeDb) / 1_000_000,
+                        includeSummary && turkishSummaryEnabled,
+                        rows.size());
                 return cevap;
             });
         } catch (Exception ex) {

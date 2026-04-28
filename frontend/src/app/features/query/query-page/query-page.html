@@ -17,13 +17,22 @@
         Matematik < 50
       </button>
 
-      <button (click)="setExample('Devamsızlığı 5ten fazla')">
-        Devamsızlık > 5
+      <button (click)="setExample('12-A sınıfındaki öğrenciler')">
+        12-A öğrencileri
+      </button>
+
+      <button (click)="setExample('9. sınıflardaki öğrenciler')">
+        9. sınıflar
       </button>
     </div>
 
-    <button class="main-btn" (click)="onSubmit()">
-      Sorgula
+    <label style="display: flex; gap: 8px; align-items: center; margin: 10px 0 0;">
+      <input type="checkbox" [(ngModel)]="includeSummary" />
+      Türkçe özet üret (daha yavaş olabilir)
+    </label>
+
+    <button class="main-btn" (click)="onSubmit()" [disabled]="loading">
+      {{ loading ? 'Sorgulanıyor…' : 'Sorgula' }}
     </button>
 
   </div>
@@ -34,9 +43,14 @@
     <pre class="sql-box">{{ response?.sql }}</pre>
   </div>
 
+  <div class="card" *ngIf="response?.summary">
+    <h3>Özet</h3>
+    <p>{{ response?.summary }}</p>
+  </div>
+
   <div class="card" *ngIf="errorMessage">
-  <p class="error">{{ errorMessage }}</p>
-</div>
+    <p class="error">{{ errorMessage }}</p>
+  </div>
 
 <div
   class="card"

@@ -15,17 +15,34 @@ public class OllamaService {
     @Value("${ollama.model}")
     private String ollamaModel;
 
+    @Value("${ollama.sql.num-predict:256}")
+    private int sqlNumPredict;
+
+    @Value("${ollama.summary.num-predict:256}")
+    private int summaryNumPredict;
+
     public OllamaService(@Value("${ollama.base-url}") String baseUrl) {
         this.restClient = RestClient.builder()
                 .baseUrl(baseUrl)
                 .build();
     }
 
-    public String generate(String prompt) {
+    public String generateSql(String prompt) {
+        return generate(prompt, sqlNumPredict);
+    }
+
+    public String generateSummary(String prompt) {
+        return generate(prompt, summaryNumPredict);
+    }
+
+    private String generate(String prompt, int numPredict) {
         Map<String, Object> requestBody = Map.of(
                 "model", ollamaModel,
                 "prompt", prompt,
-                "stream", false
+                "stream", false,
+                "options", Map.of(
+                        "num_predict", Math.max(64, numPredict)
+                )
         );
 
         Map<?, ?> response = restClient.post()

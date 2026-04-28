@@ -9,6 +9,7 @@ export interface QueryResponse {
   columns: string[] | null;
   rows: any[][] | null;
   error: string | null;
+  summary?: string | null;
   debug: any;
 }
 
@@ -16,11 +17,11 @@ export interface QueryResponse {
   providedIn: 'root',
 })
 export class Query {
-  private apiUrl = 'http://localhost:8080/api/query';
+  private apiUrl = '/api/query';
 
   constructor(private http: HttpClient) {}
 
-  sendQuery(question: string): Observable<QueryResponse> {
-    return this.http.post<QueryResponse>(this.apiUrl, { question });
+  sendQuery(question: string, includeSummary = false): Observable<QueryResponse> {
+    return this.http.post<QueryResponse>(this.apiUrl, { question, includeSummary });
   }
 }

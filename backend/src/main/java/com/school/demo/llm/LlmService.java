@@ -35,7 +35,7 @@ public class LlmService {
                 q
         );
 
-        String raw = ollamaService.generate(prompt);
+        String raw = ollamaService.generateSql(prompt);
         String sql = sqlPostProcessor.clean(raw);
 
         if (sql == null || sql.isBlank()) {
@@ -58,7 +58,7 @@ public class LlmService {
                 Görev: Soruyu Türkçe, kısa ve net yanıtla (yaklaşık 2–6 cümle).
                 Sadece düz metin yaz. SQL, markdown, tablo veya liste işareti kullanma.
                 """.formatted(question, tablo);
-        String raw = ollamaService.generate(prompt);
+        String raw = ollamaService.generateSummary(prompt);
         return raw == null ? "" : raw.trim();
     }
 
