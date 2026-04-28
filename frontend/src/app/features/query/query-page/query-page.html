@@ -1,0 +1,74 @@
+<div class="container">
+  <div class="card" >
+
+    <h2>Öğrenci Sorgulama Sistemi</h2>
+    <p class="desc">
+      Doğal dil kullanarak öğrenci verilerini sorgulayın
+    </p>
+
+    <textarea
+      [(ngModel)]="question"
+      rows="4"
+      placeholder="Örnek: Matematik notu 50'nin altında olan öğrenciler"
+    ></textarea>
+
+    <div class="examples">
+      <button (click)="setExample('Matematik notu 50 altı')">
+        Matematik < 50
+      </button>
+
+      <button (click)="setExample('Devamsızlığı 5ten fazla')">
+        Devamsızlık > 5
+      </button>
+    </div>
+
+    <button class="main-btn" (click)="onSubmit()">
+      Sorgula
+    </button>
+
+  </div>
+
+  <!-- SQL -->
+  <div class="card" *ngIf="response?.sql">
+    <h3>Oluşturulan SQL</h3>
+    <pre class="sql-box">{{ response?.sql }}</pre>
+  </div>
+
+  <div class="card" *ngIf="errorMessage">
+  <p class="error">{{ errorMessage }}</p>
+</div>
+
+<div
+  class="card"
+  *ngIf="response?.status === 'success' && response?.rows?.length === 0"
+>
+  <p class="empty">Sonuç bulunamadı.</p>
+</div>
+
+  <!-- Tablo -->
+  <div class="card" *ngIf="tableData.length > 0">
+
+  <div class="result-header">
+    <h3>Sonuçlar</h3>
+    <span>{{ tableData.length }} kayıt bulundu</span>
+    <button class="pdf-btn" (click)="downloadPdf()">PDF İndir</button>
+    <button class="excel-btn" (click)="downloadExcel()">Excel İndir</button>
+  </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th *ngFor="let col of displayedColumns">{{ col }}</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr *ngFor="let row of tableData">
+          <td *ngFor="let col of displayedColumns">
+            {{ row[col] }}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
