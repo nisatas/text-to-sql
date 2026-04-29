@@ -27,6 +27,7 @@ public class SchemaProvider {
                 - id (integer, primary key)
                 - student_id (integer, foreign key -> students.id)
                 - subject (varchar)      -- examples: Matematik, Fizik, Kimya
+                - exam_no (smallint)     -- 1 or 2 (each student has two exam scores per subject)
                 - score (integer, 0-100)
 
                 Relationships:

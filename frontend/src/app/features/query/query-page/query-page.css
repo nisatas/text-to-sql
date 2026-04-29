@@ -20,6 +20,73 @@ h2 {
   margin-bottom: 15px;
 }
 
+.mode-toggle {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.chip {
+  background: #334155;
+  border: 1px solid #475569;
+  color: #f1f5f9;
+  padding: 6px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.chip.active {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+.filters {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.filters-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.filters-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #cbd5e1;
+  font-size: 12px;
+}
+
+.filters-grid input,
+.filters-grid select {
+  background: #020617;
+  color: #f1f5f9;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.filters-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.secondary-btn {
+  background: transparent;
+  border: 1px solid #475569;
+  color: #f1f5f9;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
 textarea {
   width: 100%;
   background: #0f172a;

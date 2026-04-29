@@ -1,6 +1,7 @@
 package com.school.demo.service;
 
 import com.school.demo.dto.QueryResponse;
+import com.school.demo.dto.FilterQueryRequest;
 import com.school.demo.llm.LlmService;
 import com.school.demo.llm.SqlCache;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,6 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.text.Normalizer;
 import java.util.regex.Pattern;
 
 @Service
@@ -48,9 +50,10 @@ public class QueryService {
         if (question == null || question.trim().isEmpty()) {
             throw new IllegalArgumentException("Soru boş olamaz.");
         }
+        validateQuestion(question);
 
         long t0 = System.nanoTime();
-        String qKey = question.trim().toLowerCase(java.util.Locale.ROOT);
+        String qKey = normalizeForCacheKey(question);
         String uretilenSql = sqlCache.get(qKey).orElse(null);
         boolean cacheHit = uretilenSql != null;
 
@@ -138,6 +141,186 @@ public class QueryService {
         }
     }
 
+    public QueryResponse queryByFilters(FilterQueryRequest f) {
+        if (f == null) {
+            throw new IllegalArgumentException("Filtre boş olamaz.");
+        }
+
+        int limit = f.getLimit() == null ? 200 : Math.min(Math.max(f.getLimit(), 1), 1000);
+
+        List<Object> params = new ArrayList<>();
+        StringBuilder where = new StringBuilder();
+        where.append("""
+                FROM grades g
+                JOIN students s ON g.student_id = s.id
+                JOIN classes c ON s.class_id = c.id
+                WHERE 1=1
+                """);
+
+        if (f.getClassName() != null && !f.getClassName().isBlank()) {
+            where.append(" AND c.class_name = ? ");
+            params.add(f.getClassName().trim());
+        }
+        if (f.getGradeLevel() != null) {
+            int gl = f.getGradeLevel();
+            if (gl < 9 || gl > 12) {
+                throw new IllegalArgumentException("Sınıf seviyesi 9-12 olmalı.");
+            }
+            where.append(" AND c.grade_level = ? ");
+            params.add(gl);
+        }
+        if (f.getStudentNumber() != null && !f.getStudentNumber().isBlank()) {
+            String sn = f.getStudentNumber().trim();
+            if (sn.endsWith("*")) {
+                where.append(" AND s.student_number ILIKE ? ");
+                params.add(sn.substring(0, sn.length() - 1) + "%");
+            } else {
+                where.append(" AND s.student_number = ? ");
+                params.add(sn);
+            }
+        }
+        if (f.getStudentName() != null && !f.getStudentName().isBlank()) {
+            where.append(" AND s.name ILIKE ? ");
+            params.add("%" + f.getStudentName().trim() + "%");
+        }
+        if (f.getSubject() != null && !f.getSubject().isBlank()) {
+            where.append(" AND g.subject = ? ");
+            params.add(f.getSubject().trim());
+        }
+        if (f.getExamNo() != null) {
+            int en = f.getExamNo();
+            if (en != 1 && en != 2) {
+                throw new IllegalArgumentException("Sınav no 1 veya 2 olmalı.");
+            }
+            where.append(" AND g.exam_no = ? ");
+            params.add(en);
+        }
+        if (f.getMinScore() != null) {
+            where.append(" AND g.score >= ? ");
+            params.add(f.getMinScore());
+        }
+        if (f.getMaxScore() != null) {
+            where.append(" AND g.score <= ? ");
+            params.add(f.getMaxScore());
+        }
+
+        String mode = f.getOutputMode() == null
+                ? "records"
+                : f.getOutputMode().trim().toLowerCase(Locale.ROOT);
+
+        String select;
+        String groupOrderLimit;
+
+        switch (mode) {
+            case "avg_overall" -> {
+                select = "SELECT AVG(g.score) AS average_score, COUNT(*) AS count\n";
+                groupOrderLimit = "\nLIMIT 1";
+            }
+            case "avg_by_subject" -> {
+                select = "SELECT g.subject, g.exam_no, AVG(g.score) AS average_score, COUNT(*) AS count\n";
+                groupOrderLimit = "\nGROUP BY g.subject, g.exam_no\nORDER BY g.subject, g.exam_no\nLIMIT " + limit;
+            }
+            default -> {
+                select = "SELECT s.name, s.student_number, c.class_name, g.subject, g.exam_no, g.score\n";
+                groupOrderLimit = "\nORDER BY c.class_name, s.name, g.subject, g.exam_no\nLIMIT " + limit;
+            }
+        }
+
+        String safeSql = select + where + groupOrderLimit;
+
+        try {
+            return jdbcTemplate.query(safeSql, params.toArray(), rs -> {
+                ResultSetMetaData meta = rs.getMetaData();
+                int n = meta.getColumnCount();
+
+                List<String> columns = new ArrayList<>(n);
+                for (int i = 1; i <= n; i++) {
+                    columns.add(meta.getColumnLabel(i));
+                }
+
+                List<List<Object>> rows = new ArrayList<>();
+                while (rs.next()) {
+                    List<Object> row = new ArrayList<>(n);
+                    for (int i = 1; i <= n; i++) {
+                        row.add(rs.getObject(i));
+                    }
+                    rows.add(row);
+                }
+
+                QueryResponse r = new QueryResponse();
+                r.setQuestion("filters");
+                r.setSql(safeSql);
+                r.setStatus("success");
+                r.setColumns(columns);
+                r.setRows(rows);
+                r.setDebug(Map.of(
+                        "rowCount", rows.size(),
+                        "params", params
+                ));
+                return r;
+            });
+        } catch (Exception ex) {
+            QueryResponse r = new QueryResponse();
+            r.setQuestion("filters");
+            r.setSql(safeSql);
+            r.setStatus("error");
+            r.setError("SQL çalıştırılırken hata oluştu.");
+            r.setDebug(Map.of(
+                    "exceptionType", ex.getClass().getName(),
+                    "message", ex.getMessage() != null ? ex.getMessage() : "",
+                    "params", params
+            ));
+            return r;
+        }
+    }
+
+    private static String normalizeForCacheKey(String question) {
+        if (question == null) {
+            return "";
+        }
+        String s = question.trim().toLowerCase(Locale.ROOT);
+
+        // Handle Turkish dotted/dotless i explicitly
+        s = s.replace('ı', 'i').replace('İ', 'i');
+
+        // Strip accents/diacritics: "öğrenci" -> "ogrenci"
+        s = Normalizer.normalize(s, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}+", "");
+
+        // Drop punctuation/symbols, keep letters/digits/spaces only
+        s = s.replaceAll("[^\\p{Alnum}\\s]+", " ");
+
+        // Collapse whitespace
+        s = s.replaceAll("\\s+", " ").trim();
+        return s;
+    }
+
+    private static void validateQuestion(String question) {
+        String q = question == null ? "" : question.trim();
+        if (q.length() < 3) {
+            throw new IllegalArgumentException("Soru çok kısa.");
+        }
+
+        String s = normalizeForCacheKey(q);
+
+        // Must contain at least one domain signal to avoid random queries from irrelevant prompts.
+        boolean hasClass = s.matches(".*\\b(9|10|11|12)\\s*-\\s*[a-z]\\b.*");
+        boolean hasGradeLevel = s.matches(".*\\b(9|10|11|12)\\b.*\\b(sinif|siniflar|sinifi)\\b.*") || s.matches(".*\\b(sinif|siniflar)\\b.*");
+        boolean hasStudentNumber = s.matches(".*\\b(demo-?001|\\d{4}-\\d{4}|\\d{4}-\\d{2}[a-z]-\\d{2})\\b.*");
+        boolean hasSubject = s.matches(".*\\b(matematik|fizik|kimya|turkce|biyoloji)\\b.*");
+        boolean hasExam = s.matches(".*\\b(1|2)\\b.*\\b(sinav|sinavi)\\b.*") || s.contains("exam");
+        boolean hasScoreKeyword = s.matches(".*\\b(not|puan|skor|ortalama|avg|average)\\b.*");
+        boolean hasStudentKeyword = s.matches(".*\\b(ogrenci|ogrenciler|student|students)\\b.*");
+
+        boolean signal = hasClass || hasGradeLevel || hasStudentNumber || hasSubject || hasExam || hasScoreKeyword || hasStudentKeyword;
+        if (!signal) {
+            throw new IllegalArgumentException(
+                    "Bu soru öğrenci/sınıf/not verileriyle ilgili görünmüyor. " +
+                            "Örn: '9-A sınıfı Matematik 2. sınav ortalaması' veya 'Matematik notu 50 altı öğrenciler'."
+            );
+        }
+    }
+
     private String sqlTemizle(String sql) {
         if (sql == null || sql.trim().isEmpty()) {
             throw new IllegalArgumentException("SQL üretilemedi.");
@@ -147,6 +330,10 @@ public class QueryService {
                 .replace("```sql", "")
                 .replace("```", "")
                 .trim();
+
+        if (s.equalsIgnoreCase("UNSUPPORTED")) {
+            throw new IllegalArgumentException("Soru bu sistem tarafından desteklenmiyor.");
+        }
 
         if (s.length() > 4000) {
             throw new IllegalArgumentException("SQL çok uzun.");

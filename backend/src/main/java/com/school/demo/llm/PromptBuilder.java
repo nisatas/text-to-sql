@@ -15,6 +15,8 @@ public class PromptBuilder {
                 - Do NOT explain.
                 - Do NOT use markdown code fences.
                 - Do NOT return anything except the SQL query.
+                - If the question is unrelated to the provided schema or does not ask about students/classes/grades,
+                  return exactly: UNSUPPORTED
                 - Use only these tables: classes, students, grades
                 - Never generate INSERT, UPDATE, DELETE, DROP, ALTER, CREATE, TRUNCATE, GRANT, REVOKE.
                 - Always prefer explicit JOINs when needed.

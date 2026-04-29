@@ -2,6 +2,7 @@ package com.school.demo.controller;
 
 import com.school.demo.dto.QueryRequest;
 import com.school.demo.dto.QueryResponse;
+import com.school.demo.dto.FilterQueryRequest;
 import com.school.demo.service.QueryService;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,5 +29,10 @@ public class QueryController {
         }
         boolean includeSummary = body.getIncludeSummary() != null && body.getIncludeSummary();
         return queryService.query(body.getQuestion().trim(), includeSummary);
+    }
+
+    @PostMapping("/filter-query")
+    public QueryResponse filterQuery(@RequestBody(required = false) FilterQueryRequest body) {
+        return queryService.queryByFilters(body);
     }
 }

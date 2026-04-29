@@ -6,34 +6,128 @@
       Doğal dil kullanarak öğrenci verilerini sorgulayın
     </p>
 
-    <textarea
-      [(ngModel)]="question"
-      rows="4"
-      placeholder="Örnek: Matematik notu 50'nin altında olan öğrenciler"
-    ></textarea>
-
-    <div class="examples">
-      <button (click)="setExample('Matematik notu 50 altı')">
-        Matematik < 50
+    <div class="mode-toggle">
+      <button
+        class="chip"
+        [class.active]="mode === 'filters'"
+        (click)="mode = 'filters'"
+        [disabled]="loading"
+      >
+        Filtre ile sorgu
       </button>
-
-      <button (click)="setExample('12-A sınıfındaki öğrenciler')">
-        12-A öğrencileri
-      </button>
-
-      <button (click)="setExample('9. sınıflardaki öğrenciler')">
-        9. sınıflar
+      <button
+        class="chip"
+        [class.active]="mode === 'nlp'"
+        (click)="mode = 'nlp'"
+        [disabled]="loading"
+      >
+        Serbest metin
       </button>
     </div>
 
-    <label style="display: flex; gap: 8px; align-items: center; margin: 10px 0 0;">
-      <input type="checkbox" [(ngModel)]="includeSummary" />
-      Türkçe özet üret (daha yavaş olabilir)
-    </label>
+    <!-- FILTER MODE -->
+    <div *ngIf="mode === 'filters'" class="filters">
+      <div class="filters-grid">
+        <label>
+          <span>Çıktı</span>
+          <select [(ngModel)]="filters.outputMode">
+            <option [ngValue]="'records'">Kayıtlar</option>
+            <option [ngValue]="'avg_overall'">Ortalama (genel)</option>
+            <option [ngValue]="'avg_by_subject'">Ortalama (ders + sınav)</option>
+          </select>
+        </label>
 
-    <button class="main-btn" (click)="onSubmit()" [disabled]="loading">
-      {{ loading ? 'Sorgulanıyor…' : 'Sorgula' }}
-    </button>
+        <label>
+          <span>Sınıf (opsiyonel)</span>
+          <input type="text" [(ngModel)]="filters.className" placeholder="örn. 9-A" />
+        </label>
+
+        <label>
+          <span>Sınıf seviyesi</span>
+          <select [(ngModel)]="filters.gradeLevel">
+            <option [ngValue]="null">Hepsi</option>
+            <option [ngValue]="9">9</option>
+            <option [ngValue]="10">10</option>
+            <option [ngValue]="11">11</option>
+            <option [ngValue]="12">12</option>
+          </select>
+        </label>
+
+        <label>
+          <span>Ders</span>
+          <select [(ngModel)]="filters.subject">
+            <option [ngValue]="null">Hepsi</option>
+            <option *ngFor="let s of subjects" [ngValue]="s">{{ s }}</option>
+          </select>
+        </label>
+
+        <label>
+          <span>Sınav</span>
+          <select [(ngModel)]="filters.examNo">
+            <option [ngValue]="null">Hepsi</option>
+            <option [ngValue]="1">1</option>
+            <option [ngValue]="2">2</option>
+          </select>
+        </label>
+
+        <label>
+          <span>Min not</span>
+          <input type="number" [(ngModel)]="filters.minScore" placeholder="örn. 50" />
+        </label>
+
+        <label>
+          <span>Max not</span>
+          <input type="number" [(ngModel)]="filters.maxScore" placeholder="örn. 70" />
+        </label>
+
+        <label>
+          <span>Öğrenci no</span>
+          <input
+            type="text"
+            [(ngModel)]="filters.studentNumber"
+            placeholder="örn. 2024-0901 veya 2024-*"
+          />
+        </label>
+
+        <label>
+          <span>Öğrenci adı</span>
+          <input type="text" [(ngModel)]="filters.studentName" placeholder="örn. Ayşe" />
+        </label>
+      </div>
+
+      <div class="filters-actions">
+        <button class="secondary-btn" (click)="resetFilters()" [disabled]="loading">Sıfırla</button>
+        <button class="main-btn" (click)="onSubmitFilters()" [disabled]="loading">
+          {{ loading ? 'Sorgulanıyor…' : 'Filtrele' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- NLP MODE -->
+    <div *ngIf="mode === 'nlp'">
+      <textarea
+        [(ngModel)]="question"
+        rows="4"
+        placeholder="Örnek: Matematik notu 50'nin altında olan öğrenciler"
+      ></textarea>
+
+      <div class="examples">
+        <button (click)="setExample('Her sınıftan kaç öğrenci var?')">Sınıf öğrenci sayıları</button>
+        <button (click)="setExample('Matematik 2. sınav notu 50 altı olan öğrenciler')">
+          Matematik 2. sınav < 50
+        </button>
+        <button (click)="setExample('Genel ortalaması en yüksek 10 öğrenci')">En yüksek ortalama (Top 10)</button>
+      </div>
+
+      <label style="display: flex; gap: 8px; align-items: center; margin: 10px 0 0;">
+        <input type="checkbox" [(ngModel)]="includeSummary" />
+        Türkçe özet üret (daha yavaş olabilir)
+      </label>
+
+      <button class="main-btn" (click)="onSubmit()" [disabled]="loading">
+        {{ loading ? 'Sorgulanıyor…' : 'Sorgula' }}
+      </button>
+    </div>
 
   </div>
 
