@@ -26,6 +26,7 @@ public class PromptBuilder {
                 - Class names like 12-A must be treated as string values, not arithmetic expressions.
                 - Always wrap class_name values in single quotes.
                 - For "9. sinif / dokuzuncu sinif / tum 9lar" use classes.grade_level = 9 (or class_name LIKE '9-%%').
+                - "Genel ortalama" means the average of ALL subjects in grades; do NOT filter by subject = 'Genel Ortalama'.
 
                 Schema:
                 %s
@@ -67,6 +68,16 @@ public class PromptBuilder {
                 WHERE g.subject = 'Matematik'
                 GROUP BY g.subject
                 LIMIT 100
+
+                Question: Genel ortalaması en yüksek 10 öğrenci
+                SQL:
+                SELECT s.name, s.student_number, c.class_name, AVG(g.score) AS average_score
+                FROM grades g
+                JOIN students s ON g.student_id = s.id
+                JOIN classes c ON s.class_id = c.id
+                GROUP BY s.id, s.name, s.student_number, c.class_name
+                ORDER BY average_score DESC
+                LIMIT 10
 
                 User question:
                 %s
