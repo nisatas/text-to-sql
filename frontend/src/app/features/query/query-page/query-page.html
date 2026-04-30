@@ -1,10 +1,46 @@
 <div class="container">
-  <div class="card" >
+  <section class="hero">
+  <div class="hero-content">
+    <span class="hero-badge">Text-to-SQL • Öğrenci Veri Analizi</span>
 
+    <h1>Öğrenci verilerini doğal dille sorgulayın</h1>
+
+    <p>
+      SQL bilmeden; sınıf, ders, not ve öğrenci bilgilerine hızlıca ulaşın.
+      Sonuçları tablo, SQL çıktısı, PDF ve Excel raporu olarak görüntüleyin.
+    </p>
+
+    <div class="hero-tags">
+      <span>Doğal Dil Sorgu</span>
+      <span>Filtreli Arama</span>
+      <span>SQL Çıktısı</span>
+      <span>PDF / Excel</span>
+    </div>
+  </div>
+
+  <div class="hero-preview">
+    <div class="preview-header">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+
+    <pre>SELECT ad, sinif, matematik_notu
+FROM students
+WHERE matematik_notu &lt; 50;</pre>
+  </div>
+</section>
+  <div class="card query-card" >
+
+    <div class="section-header">
+  <div>
+    <span class="section-label">Sorgu Paneli</span>
     <h2>Öğrenci Sorgulama Sistemi</h2>
     <p class="desc">
-      Doğal dil kullanarak öğrenci verilerini sorgulayın
+      Filtrelerle ya da serbest metinle öğrenci verilerini analiz edin.
     </p>
+  </div>
+</div>
 
     <div class="mode-toggle">
       <button
@@ -132,10 +168,16 @@
   </div>
 
   <!-- SQL -->
-  <div class="card" *ngIf="response?.sql">
-    <h3>Oluşturulan SQL</h3>
-    <pre class="sql-box">{{ response?.sql }}</pre>
+ <div class="card sql-card" *ngIf="response?.sql">
+  <div class="sql-header">
+    <div>
+      <span class="section-label">SQL Çıktısı</span>
+      <h3>Oluşturulan SQL</h3>
+    </div>
   </div>
+
+  <pre class="sql-box">{{ response?.sql }}</pre>
+</div>
 
   <div class="card" *ngIf="response?.summary">
     <h3>Özet</h3>
@@ -154,14 +196,34 @@
 </div>
 
   <!-- Tablo -->
-  <div class="card" *ngIf="tableData.length > 0">
+   
+  <div class="card loading-state" *ngIf="loading">
+  <div class="spinner"></div>
+  <h3>Sorgu işleniyor</h3>
+  <p>Öğrenci verileri analiz ediliyor, lütfen bekleyin.</p>
+</div>
 
-  <div class="result-header">
+<div class="card empty-state" *ngIf="!loading && response?.status === 'success' && response?.rows?.length === 0">
+  <div class="empty-icon">⌕</div>
+  <h3>Henüz sorgu yapılmadı</h3>
+  <p>
+    Filtreleri kullanarak ya da serbest metin yazarak öğrenci verilerini sorgulayabilirsiniz.
+  </p>
+</div>
+
+<div class="result-header">
+  <div class="result-left">
     <h3>Sonuçlar</h3>
-    <span>{{ tableData.length }} kayıt bulundu</span>
-    <button class="pdf-btn" (click)="downloadPdf()">PDF İndir</button>
-    <button class="excel-btn" (click)="downloadExcel()">Excel İndir</button>
+    <span class="result-count">
+      {{ tableData.length }} kayıt
+    </span>
   </div>
+
+  <div class="result-actions">
+    <button class="secondary-btn" (click)="downloadPdf()">PDF</button>
+    <button class="secondary-btn" (click)="downloadExcel()">Excel</button>
+  </div>
+</div>
 
     <table>
       <thead>
@@ -179,4 +241,3 @@
       </tbody>
     </table>
   </div>
-</div>
